@@ -205,7 +205,7 @@
 
 <script>
   let ws, myName = null, isAvailable = false, users = {};
-  let sessionToken = sessionStorage.getItem("token");
+  let sessionToken = localStorage.getItem("token");
 
   const nameInput = document.getElementById("nameInput");
   const toggleBtn = document.getElementById("toggleBtn");
@@ -229,7 +229,7 @@
     if (res.ok) {
       const data = await res.json();
       sessionToken = data.token;
-      sessionStorage.setItem("token", sessionToken);
+      localStorage.setItem("token", sessionToken);
       loginOverlay.style.display = "none";
       connect();
     } else {
@@ -305,7 +305,7 @@
     };
     ws.onclose = (e) => {
       if (e.code === 4001) {
-        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
         sessionToken = null;
         loginOverlay.style.display = "flex";
       } else {
