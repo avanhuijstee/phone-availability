@@ -234,6 +234,7 @@
       sessionToken = data.token;
       localStorage.setItem("token", sessionToken);
       loginOverlay.style.display = "none";
+      requestNotificationPermission();
       connect();
     } else {
       loginError.style.display = "block";
@@ -303,7 +304,7 @@
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "state") { users = msg.users; renderList(); }
-      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); }
+      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); if (msg.name !== myName) notify(msg.name); }
       else if (msg.type === "unavailable") { delete users[msg.name]; renderList(); }
     };
     ws.onclose = (e) => {
@@ -321,8 +322,25 @@
 
   window.addEventListener("beforeunload", () => { if (isAvailable && myName) sendUnavailable(myName); });
 
+  function requestNotificationPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }
+
+  function notify(name) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return;
+    new Notification("📞 Beschikbaar voor een belletje!", {
+      body: `${name} is nu beschikbaar.`,
+      icon: "/static/apple-touch-icon.png",
+    });
+  }
+
+  
   if (sessionToken) {
     loginOverlay.style.display = "none";
+    requestNotificationPermission();
     connect();
   }
 </script>
