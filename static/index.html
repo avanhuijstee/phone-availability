@@ -192,7 +192,8 @@
   const loginError = document.getElementById("loginError");
 
   passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
-
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+  
   async function login() {
     loginError.style.display = "none";
     const password = passwordInput.value;
@@ -297,10 +298,13 @@
 
   function notify(name) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
-    new Notification("📞 Beschikbaar voor een belletje!", {
-      body: `${name} is nu beschikbaar.`,
-      icon: "/static/apple-touch-icon.png",
-    });
+    const title = "📞 Beschikbaar voor een belletje!";
+    const options = { body: `${name} is nu beschikbaar.`, icon: "/static/android-chrome-192x192.png" };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, options));
+    } else {
+      new Notification(title, options);
+    }
   }
 
   function connect() {
