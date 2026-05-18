@@ -1,0 +1,15 @@
+{
+  "name": "Beschikbaar voor een belletje?",
+  "short_name": "Belletje",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/static/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
