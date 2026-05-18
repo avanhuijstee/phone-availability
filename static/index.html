@@ -296,7 +296,6 @@
 
   function notify(name) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
-    if (document.visibilityState === "visible") return;
     new Notification("📞 Beschikbaar voor een belletje!", {
       body: `${name} is nu beschikbaar.`,
       icon: "/static/apple-touch-icon.png",
