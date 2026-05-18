@@ -80,6 +80,9 @@ async def websocket_endpoint(websocket: WebSocket, token: str = ""):
     except WebSocketDisconnect:
         connections.remove(websocket)
 
+@app.get("/sw.js")
+async def service_worker():
+    return FileResponse("static/sw.js", media_type="application/javascript")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
