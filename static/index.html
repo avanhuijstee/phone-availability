@@ -175,7 +175,7 @@
     <ul id="userList"><li class="empty">Niemand is momenteel beschikbaar.</li></ul>
   </div>
 
-  <p class="conn-status" id="connStatus">Verbinding maken...</p>
+  <p class="conn-status" id="connStatus"></p>
 
 <script>
   let ws, myName = null, isAvailable = false, users = {};
@@ -234,8 +234,19 @@
   function toggle() {
     const name = nameInput.value.trim();
     if (!name) return;
-    if (!isAvailable) { myName = name; isAvailable = true; sendAvailable(name); }
-    else { sendUnavailable(myName); isAvailable = false; myName = null; }
+    if (!isAvailable) {
+      myName = name;
+      isAvailable = true;
+      sendAvailable(name);
+      sessionStorage.setItem("isAvailable", "true");
+      sessionStorage.setItem("myName", name);
+    } else {
+      sendUnavailable(myName);
+      isAvailable = false;
+      myName = null;
+      sessionStorage.removeItem("isAvailable");
+      sessionStorage.removeItem("myName");
+    }
     updateOwnStatus();
   }
 
@@ -254,6 +265,16 @@
       statusBadge.textContent = "Niet beschikbaar";
       statusBadge.className = "status-badge unavailable";
     }
+  }
+
+  function restoreAvailability() {
+    const wasAvailable = sessionStorage.getItem("isAvailable") === "true";
+    const savedMyName = sessionStorage.getItem("myName");
+    if (!wasAvailable || !savedMyName) return;
+    myName = savedMyName;
+    isAvailable = true;
+    if (!users[myName]) sendAvailable(myName);
+    updateOwnStatus();
   }
 
   function renderList() {
@@ -289,16 +310,25 @@
     let pingInterval;
 
     ws.onopen = () => {
-      connStatus.textContent = "Verbonden";
+      connStatus.textContent = "";
       pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
-      }, 30000);
+      }, 25000);
     };
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      if (msg.type === "state") { users = msg.users; renderList(); }
-      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); if (msg.name !== myName) notify(msg.name); }
-      else if (msg.type === "unavailable") { delete users[msg.name]; renderList(); }
+      if (msg.type === "state") {
+        users = msg.users;
+        renderList();
+        restoreAvailability();
+      } else if (msg.type === "available") {
+        users[msg.name] = msg.since;
+        renderList();
+        if (msg.name !== myName) notify(msg.name);
+      } else if (msg.type === "unavailable") {
+        delete users[msg.name];
+        renderList();
+      }
     };
     ws.onclose = (e) => {
       clearInterval(pingInterval);
@@ -307,14 +337,16 @@
         sessionToken = null;
         loginOverlay.style.display = "flex";
       } else {
-        connStatus.textContent = "Verbinding verbroken. Herverbinden in 3s...";
+        connStatus.textContent = "Herverbinden...";
         setTimeout(connect, 3000);
       }
     };
     ws.onerror = () => { ws.close(); };
   }
 
-  window.addEventListener("beforeunload", () => { if (isAvailable && myName) sendUnavailable(myName); });
+  window.addEventListener("beforeunload", () => {
+    if (isAvailable && myName) sendUnavailable(myName);
+  });
 
   if (sessionToken) {
     loginOverlay.style.display = "none";
