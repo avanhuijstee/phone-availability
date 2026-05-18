@@ -1,20 +1,35 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import os
+import secrets
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 import json
 from datetime import datetime, timezone
 
 app = FastAPI()
 
-# In-memory storage: name -> {"since": ISO timestamp}
-available_users: dict[str, str] = {}
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "belletje")
+active_tokens: set[str] = set()
 
-# Active WebSocket connections
+available_users: dict[str, str] = {}
 connections: list[WebSocket] = []
 
 
+class PasswordRequest(BaseModel):
+    password: str
+
+
+@app.post("/verify")
+async def verify(req: PasswordRequest):
+    if req.password != APP_PASSWORD:
+        raise HTTPException(status_code=401, detail="Ongeldig wachtwoord")
+    token = secrets.token_hex(32)
+    active_tokens.add(token)
+    return {"token": token}
+
+
 async def broadcast(message: dict):
-    """Send a message to all connected clients."""
     data = json.dumps(message)
     disconnected = []
     for ws in connections:
@@ -27,11 +42,14 @@ async def broadcast(message: dict):
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = ""):
+    if token not in active_tokens:
+        await websocket.close(code=4001)
+        return
+
     await websocket.accept()
     connections.append(websocket)
 
-    # Send current state to the new connection
     await websocket.send_text(json.dumps({
         "type": "state",
         "users": available_users,
@@ -47,7 +65,6 @@ async def websocket_endpoint(websocket: WebSocket):
             if msg["type"] == "available":
                 available_users[name] = datetime.now(timezone.utc).isoformat()
                 await broadcast({"type": "available", "name": name, "since": available_users[name]})
-
             elif msg["type"] == "unavailable":
                 available_users.pop(name, None)
                 await broadcast({"type": "unavailable", "name": name})
