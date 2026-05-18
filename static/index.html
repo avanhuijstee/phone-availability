@@ -239,9 +239,18 @@
     }
   }
 
+  // Naam ophalen uit localStorage
+  const savedName = localStorage.getItem("userName");
+  if (savedName) {
+    nameInput.value = savedName;
+    toggleBtn.disabled = false;
+  }
+
   nameInput.addEventListener("input", () => {
     toggleBtn.disabled = nameInput.value.trim() === "";
+    if (nameInput.value.trim()) localStorage.setItem("userName", nameInput.value.trim());
   });
+
 
   nameInput.addEventListener("change", () => {
     if (isAvailable) { sendUnavailable(myName); isAvailable = false; myName = null; updateOwnStatus(); }
