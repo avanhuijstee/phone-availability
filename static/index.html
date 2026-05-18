@@ -300,7 +300,33 @@
     const proto = location.protocol === "https:" ? "wss" : "ws";
     ws = new WebSocket(`${proto}://${location.host}/ws?token=${sessionToken}`);
 
-    ws.onopen = () => { connStatus.textContent = "Verbonden"; };
+    let pingInterval;
+
+    ws.onopen = () => {
+      connStatus.textContent = "Verbonden";
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
+      }, 30000);
+    };
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "state") { users = msg.users; renderList(); }
+      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); if (msg.name !== myName) notify(msg.name); }
+      else if (msg.type === "unavailable") { delete users[msg.name]; renderList(); }
+    };
+    ws.onclose = (e) => {
+      clearInterval(pingInterval);
+      if (e.code === 4001) {
+        localStorage.removeItem("token");
+        sessionToken = null;
+        loginOverlay.style.display = "flex";
+      } else {
+        connStatus.textContent = "Verbinding verbroken. Herverbinden in 3s...";
+        setTimeout(connect, 3000);
+      }
+    };
+    ws.onerror = () => { ws.close(); };
+  }
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "state") { users = msg.users; renderList(); }
