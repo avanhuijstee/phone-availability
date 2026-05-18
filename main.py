@@ -1,5 +1,6 @@
 import os
-import secrets
+import hmac
+import hashlib
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,10 +11,18 @@ from datetime import datetime, timezone
 app = FastAPI()
 
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "belletje")
-active_tokens: set[str] = set()
 
 available_users: dict[str, str] = {}
 connections: list[WebSocket] = []
+
+
+def make_token(password: str) -> str:
+    return hmac.new(password.encode(), b"phone-availability", hashlib.sha256).hexdigest()
+
+
+def valid_token(token: str) -> bool:
+    expected = make_token(APP_PASSWORD)
+    return hmac.compare_digest(token, expected)
 
 
 class PasswordRequest(BaseModel):
@@ -24,9 +33,7 @@ class PasswordRequest(BaseModel):
 async def verify(req: PasswordRequest):
     if req.password != APP_PASSWORD:
         raise HTTPException(status_code=401, detail="Ongeldig wachtwoord")
-    token = secrets.token_hex(32)
-    active_tokens.add(token)
-    return {"token": token}
+    return {"token": make_token(req.password)}
 
 
 async def broadcast(message: dict):
@@ -43,7 +50,7 @@ async def broadcast(message: dict):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = ""):
-    if token not in active_tokens:
+    if not valid_token(token):
         await websocket.close(code=4001)
         return
 
