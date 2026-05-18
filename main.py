@@ -51,6 +51,7 @@ async def broadcast(message: dict):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = ""):
     if not valid_token(token):
+        await websocket.accept()
         await websocket.close(code=4001)
         return
 
