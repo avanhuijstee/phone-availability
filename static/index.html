@@ -6,6 +6,7 @@
   <title>Beschikbaar voor een belletje?</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f0f4f8;
@@ -16,8 +17,10 @@
       padding: 40px 16px;
       color: #1a202c;
     }
+
     h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
     .subtitle { color: #64748b; margin-bottom: 32px; font-size: 0.95rem; }
+
     .card {
       background: white;
       border-radius: 16px;
@@ -27,8 +30,10 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       margin-bottom: 24px;
     }
+
     .name-row { display: flex; gap: 10px; }
-    input[type="text"] {
+
+    input[type="text"], input[type="password"] {
       flex: 1;
       padding: 10px 14px;
       border: 1.5px solid #e2e8f0;
@@ -36,8 +41,11 @@
       font-size: 1rem;
       outline: none;
       transition: border-color 0.15s;
+      width: 100%;
     }
-    input[type="text"]:focus { border-color: #6366f1; }
+
+    input:focus { border-color: #6366f1; }
+
     button {
       padding: 10px 18px;
       border: none;
@@ -47,10 +55,13 @@
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
     }
+
     button:active { transform: scale(0.97); }
+
     #toggleBtn { background: #22c55e; color: white; min-width: 130px; }
     #toggleBtn.active { background: #ef4444; }
     #toggleBtn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
     .status-badge {
       display: inline-block;
       margin-top: 14px;
@@ -61,6 +72,7 @@
     }
     .status-badge.available { background: #dcfce7; color: #15803d; }
     .status-badge.unavailable { background: #f1f5f9; color: #64748b; }
+
     .list-card {
       background: white;
       border-radius: 16px;
@@ -69,6 +81,7 @@
       max-width: 420px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
+
     .list-card h2 {
       font-size: 1rem;
       font-weight: 700;
@@ -77,6 +90,7 @@
       align-items: center;
       gap: 8px;
     }
+
     .dot {
       width: 10px; height: 10px;
       border-radius: 50%;
@@ -84,7 +98,9 @@
       display: inline-block;
       animation: pulse 1.8s infinite;
     }
+
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
     #userList { list-style: none; display: flex; flex-direction: column; gap: 10px; }
     #userList li {
       display: flex;
@@ -94,6 +110,7 @@
       background: #f8fafc;
       border-radius: 10px;
     }
+
     .avatar {
       width: 36px; height: 36px;
       border-radius: 50%;
@@ -106,15 +123,71 @@
       font-size: 0.9rem;
       flex-shrink: 0;
     }
+
     .user-info strong { display: block; font-size: 0.95rem; }
     .user-info span { font-size: 0.78rem; color: #94a3b8; }
     .empty { text-align: center; color: #94a3b8; font-size: 0.9rem; padding: 16px 0; }
     .conn-status { font-size: 0.75rem; color: #94a3b8; margin-top: 20px; }
+
+    /* Wachtwoordscherm */
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      background: #f0f4f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #loginBox {
+      background: white;
+      border-radius: 16px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #loginBox h2 { font-size: 1.2rem; font-weight: 700; }
+    #loginBox p { font-size: 0.9rem; color: #64748b; }
+
+    #loginBtn {
+      background: #6366f1;
+      color: white;
+      padding: 11px;
+      font-size: 1rem;
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    #loginError {
+      color: #ef4444;
+      font-size: 0.85rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Wachtwoordscherm -->
+  <div id="loginOverlay">
+    <div id="loginBox">
+      <h2>🔒 Inloggen</h2>
+      <p>Vul het wachtwoord in om de app te gebruiken.</p>
+      <input type="password" id="passwordInput" placeholder="Wachtwoord" />
+      <span id="loginError">Ongeldig wachtwoord, probeer opnieuw.</span>
+      <button id="loginBtn" onclick="login()">Inloggen</button>
+    </div>
+  </div>
+
+  <!-- Hoofdapp -->
   <h1>📞 Beschikbaar voor een belletje?</h1>
   <p class="subtitle">Geef aan wanneer je gebeld kan worden.</p>
+
   <div class="card">
     <div class="name-row">
       <input type="text" id="nameInput" placeholder="Jouw naam" maxlength="40" />
@@ -122,22 +195,54 @@
     </div>
     <span id="statusBadge" class="status-badge unavailable">Niet beschikbaar</span>
   </div>
+
   <div class="list-card">
     <h2><span class="dot"></span> Nu beschikbaar</h2>
     <ul id="userList"><li class="empty">Niemand is momenteel beschikbaar.</li></ul>
   </div>
+
   <p class="conn-status" id="connStatus">Verbinding maken...</p>
+
 <script>
   let ws, myName = null, isAvailable = false, users = {};
+  let sessionToken = sessionStorage.getItem("token");
+
   const nameInput = document.getElementById("nameInput");
   const toggleBtn = document.getElementById("toggleBtn");
   const statusBadge = document.getElementById("statusBadge");
   const userList = document.getElementById("userList");
   const connStatus = document.getElementById("connStatus");
+  const loginOverlay = document.getElementById("loginOverlay");
+  const passwordInput = document.getElementById("passwordInput");
+  const loginError = document.getElementById("loginError");
+
+  passwordInput.addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+
+  async function login() {
+    const password = passwordInput.value;
+    const res = await fetch("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      sessionToken = data.token;
+      sessionStorage.setItem("token", sessionToken);
+      loginOverlay.style.display = "none";
+      connect();
+    } else {
+      loginError.style.display = "block";
+      passwordInput.value = "";
+      passwordInput.focus();
+    }
+  }
 
   nameInput.addEventListener("input", () => {
     toggleBtn.disabled = nameInput.value.trim() === "";
   });
+
   nameInput.addEventListener("change", () => {
     if (isAvailable) { sendUnavailable(myName); isAvailable = false; myName = null; updateOwnStatus(); }
   });
@@ -180,7 +285,8 @@
 
   function connect() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws = new WebSocket(`${proto}://${location.host}/ws?token=${sessionToken}`);
+
     ws.onopen = () => { connStatus.textContent = "Verbonden"; };
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
@@ -188,12 +294,25 @@
       else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); }
       else if (msg.type === "unavailable") { delete users[msg.name]; renderList(); }
     };
-    ws.onclose = () => { connStatus.textContent = "Verbinding verbroken. Herverbinden in 3s..."; setTimeout(connect, 3000); };
+    ws.onclose = (e) => {
+      if (e.code === 4001) {
+        sessionStorage.removeItem("token");
+        sessionToken = null;
+        loginOverlay.style.display = "flex";
+      } else {
+        connStatus.textContent = "Verbinding verbroken. Herverbinden in 3s...";
+        setTimeout(connect, 3000);
+      }
+    };
     ws.onerror = () => { ws.close(); };
   }
 
   window.addEventListener("beforeunload", () => { if (isAvailable && myName) sendUnavailable(myName); });
-  connect();
+
+  if (sessionToken) {
+    loginOverlay.style.display = "none";
+    connect();
+  }
 </script>
 </body>
 </html>
