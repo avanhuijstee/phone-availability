@@ -9,13 +9,16 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from pywebpush import webpush, WebPushException
+from py_vapid import Vapid
 
 app = FastAPI()
 
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "belletje")
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_CLAIMS = {"sub": "mailto:app@phone-availability.app"}
+
+vapid = Vapid.from_string(VAPID_PRIVATE_KEY) if VAPID_P
 
 available_users: dict[str, str] = {}
 connections: list[WebSocket] = []
@@ -61,8 +64,8 @@ async def subscribe(req: SubscribeRequest):
 
 
 async def send_push(title: str, body: str):
-    if not VAPID_PRIVATE_KEY:
-        print("[PUSH] Geen VAPID_PRIVATE_KEY ingesteld")
+    if not vapid:
+        print("[PUSH] Geen VAPID sleutel ingesteld")
         return
     print(f"[PUSH] Versturen naar {len(push_subscriptions)} apparaten...")
     data = json.dumps({"title": title, "body": body})
@@ -72,7 +75,7 @@ async def send_push(title: str, body: str):
                 webpush,
                 subscription_info=sub,
                 data=data,
-                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_private_key=vapid,
                 vapid_claims=VAPID_CLAIMS,
             )
             print("[PUSH] Succesvol verstuurd")
