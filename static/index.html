@@ -219,22 +219,31 @@
   }
 
   async function subscribeToPush() {
-    if (!("PushManager" in window) || !("serviceWorker" in navigator)) return;
+    if (!("PushManager" in window) || !("serviceWorker" in navigator)) {
+      console.log("[PUSH] PushManager niet ondersteund");
+      return;
+    }
     try {
       const reg = await navigator.serviceWorker.ready;
+      console.log("[PUSH] Service worker ready");
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
+        console.log("[PUSH] Nieuw abonnement aanmaken...");
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
-      await fetch("/subscribe", {
+      console.log("[PUSH] Abonnement:", sub.endpoint);
+      const res = await fetch("/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: sessionToken, subscription: sub.toJSON() }),
       });
-    } catch (e) {}
+      console.log("[PUSH] Server response:", res.status);
+    } catch (e) {
+      console.error("[PUSH] Fout:", e);
+    }
   }
 
   let ws, myName = null, isAvailable = false, users = {};
