@@ -79,6 +79,8 @@ async def send_push(title: str, body: str, skip_endpoint: str = None):
                 data=data,
                 vapid_private_key=vapid,
                 vapid_claims=VAPID_CLAIMS,
+                ttl=60,
+                headers={"Urgency": "high"},
             )
             print("[PUSH] Succesvol verstuurd")
         except WebPushException as e:
