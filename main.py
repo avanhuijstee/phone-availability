@@ -128,7 +128,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str = ""):
                 await broadcast({"type": "available", "name": name, "since": available_users[name]})
                 asyncio.create_task(send_push(
                     f"📞 {name} is beschikbaar!",
-                    f"{name} is nu beschikbaar voor een belletje."
+                    f"{name} is nu beschikbaar voor een belletje.",
+                    skip_endpoint=msg.get("pushEndpoint"),
                 ))
             elif msg["type"] == "unavailable":
                 available_users.pop(name, None)
