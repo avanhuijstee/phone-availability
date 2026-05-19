@@ -63,13 +63,15 @@ async def subscribe(req: SubscribeRequest):
     return {"ok": True}
 
 
-async def send_push(title: str, body: str):
+async def send_push(title: str, body: str, skip_endpoint: str = None):
     if not vapid:
         print("[PUSH] Geen VAPID sleutel ingesteld")
         return
     print(f"[PUSH] Versturen naar {len(push_subscriptions)} apparaten...")
     data = json.dumps({"title": title, "body": body})
     for sub in push_subscriptions[:]:
+        if skip_endpoint and sub.get("endpoint") == skip_endpoint:
+            continue
         try:
             await asyncio.to_thread(
                 webpush,
