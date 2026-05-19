@@ -9,7 +9,9 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from datetime import datetime, timezone
 from pywebpush import webpush, WebPushException
-from py_vapid import Vapid
+from cryptography.hazmat.primitives.asymmetric.ec import derive_private_key, SECP256R1
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+import base64 as _base64
 
 app = FastAPI()
 
@@ -18,7 +20,19 @@ VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_CLAIMS = {"sub": "mailto:app@phone-availability.app"}
 
-vapid = Vapid.from_string(VAPID_PRIVATE_KEY) if VAPID_PRIVATE_KEY else None
+
+def load_vapid_pem(b64_key: str) -> str | None:
+    try:
+        padding = "=" * (4 - len(b64_key) % 4)
+        d = int.from_bytes(_base64.urlsafe_b64decode(b64_key + padding), "big")
+        key = derive_private_key(d, SECP256R1())
+        return key.private_bytes(Encoding.PEM, PrivateFormat.TraditionalOpenSSL, NoEncryption()).decode()
+    except Exception as e:
+        print(f"[PUSH] Sleutel laden mislukt: {e}")
+        return None
+
+
+vapid_pem = load_vapid_pem(VAPID_PRIVATE_KEY) if VAPID_PRIVATE_KEY else None
 
 available_users: dict[str, str] = {}
 connections: list[WebSocket] = []
@@ -64,7 +78,7 @@ async def subscribe(req: SubscribeRequest):
 
 
 async def send_push(title: str, body: str, skip_endpoint: str = None):
-    if not vapid:
+    if not vapid_pem:
         print("[PUSH] Geen VAPID sleutel ingesteld")
         return
     print(f"[PUSH] Versturen naar {len(push_subscriptions)} apparaten...")
@@ -77,7 +91,7 @@ async def send_push(title: str, body: str, skip_endpoint: str = None):
                 webpush,
                 subscription_info=sub,
                 data=data,
-                vapid_private_key=vapid,
+                vapid_private_key=vapid_pem,
                 vapid_claims=VAPID_CLAIMS,
                 ttl=60,
                 headers={"Urgency": "high"},
