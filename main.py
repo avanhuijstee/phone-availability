@@ -56,12 +56,15 @@ async def subscribe(req: SubscribeRequest):
             push_subscriptions.remove(existing)
             break
     push_subscriptions.append(req.subscription)
+    print(f"[PUSH] Subscription geregistreerd. Totaal: {len(push_subscriptions)}")
     return {"ok": True}
 
 
 async def send_push(title: str, body: str):
     if not VAPID_PRIVATE_KEY:
+        print("[PUSH] Geen VAPID_PRIVATE_KEY ingesteld")
         return
+    print(f"[PUSH] Versturen naar {len(push_subscriptions)} apparaten...")
     data = json.dumps({"title": title, "body": body})
     for sub in push_subscriptions[:]:
         try:
@@ -72,11 +75,13 @@ async def send_push(title: str, body: str):
                 vapid_private_key=VAPID_PRIVATE_KEY,
                 vapid_claims=VAPID_CLAIMS,
             )
+            print("[PUSH] Succesvol verstuurd")
         except WebPushException as e:
+            print(f"[PUSH] Fout: {e.response.status_code if e.response else e}")
             if e.response and e.response.status_code in (404, 410):
                 push_subscriptions.remove(sub)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[PUSH] Onverwachte fout: {e}")
 
 
 async def broadcast(message: dict):
