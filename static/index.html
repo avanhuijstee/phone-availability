@@ -234,6 +234,7 @@
         });
         localStorage.setItem("vapidKey", VAPID_PUBLIC_KEY);
       }
+      pushEndpoint = sub.endpoint;
       await fetch("/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,7 +243,7 @@
     } catch (e) {}
   }
 
-  let ws, myName = null, isAvailable = false, users = {};
+  let ws, myName = null, isAvailable = false, users = {}, pushEndpoint = null;
   let sessionToken = localStorage.getItem("token");
 
   const nameInput = document.getElementById("nameInput");
@@ -306,7 +307,7 @@
     updateOwnStatus();
   }
 
-  function sendAvailable(name) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "available", name })); }
+  function sendAvailable(name) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "available", name, pushEndpoint })); }
   function sendUnavailable(name) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "unavailable", name })); }
 
   function updateOwnStatus() {
