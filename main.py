@@ -18,7 +18,7 @@ VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_CLAIMS = {"sub": "mailto:app@phone-availability.app"}
 
-vapid = Vapid.from_string(VAPID_PRIVATE_KEY) if VAPID_P
+vapid = Vapid.from_string(VAPID_PRIVATE_KEY) if VAPID_PRIVATE_KEY else None
 
 available_users: dict[str, str] = {}
 connections: list[WebSocket] = []
