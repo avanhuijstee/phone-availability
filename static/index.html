@@ -349,7 +349,7 @@
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === "state") { users = msg.users; renderList(); }
-      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); if (msg.name !== myName) notify(msg.name); }
+      else if (msg.type === "available") { users[msg.name] = msg.since; renderList(); }
       else if (msg.type === "unavailable") { delete users[msg.name]; renderList(); }
     };
     ws.onclose = (e) => {
